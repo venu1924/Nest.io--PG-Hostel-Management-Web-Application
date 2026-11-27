@@ -1,0 +1,61 @@
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import FloorRoomGrid from '../components/rooms/FloorRoomGrid';
+import LoadingState from '../components/common/LoadingState';
+import ErrorState from '../components/common/ErrorState';
+import { useRooms } from '../hooks/useRooms';
+import { summarizeFloor } from '../utils/roomUtils';
+import { floorOrdinal } from '../utils/formatters';
+import { formatFloorSeriesLabel } from '../data/buildingConfig';
+
+function roomRange(rooms) {
+  const nums = (rooms || []).map((room) => Number(room.roomNumber)).sort((a, b) => a - b);
+  if (!nums.length) return '—';
+  return nums[0] === nums[nums.length - 1] ? String(nums[0]) : `${nums[0]}–${nums[nums.length - 1]}`;
+}
+
+export default function FloorView() {
+  const { floorNumber } = useParams();
+  const { getFloor, loading, error } = useRooms();
+  const floor = getFloor(floorNumber);
+
+  if (loading) return <LoadingState message="Loading floor..." />;
+  if (error) return <ErrorState message={error} />;
+  if (!floor) return <ErrorState message="Floor not found." />;
+
+  const summary = summarizeFloor(floor.rooms);
+
+  return (
+    <div className="space-y-5 animate-floor-in">
+      <Link
+        to="/rooms"
+        className="inline-flex min-h-10 items-center gap-1 text-sm text-nest-muted"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden />
+        Building
+      </Link>
+
+      <header>
+        <h1 className="font-display text-2xl font-semibold text-nest-navy">
+          {formatFloorSeriesLabel(floor.floorNumber)}
+        </h1>
+        <p className="mt-1 text-sm text-nest-muted">
+          {floorOrdinal(floor.floorNumber)} floor · Rooms {roomRange(floor.rooms)}{' '}
+          · {summary.totalRooms} rooms · {summary.totalBeds} beds
+        </p>
+        <p className="mt-1 text-sm text-nest-muted">
+          {summary.residents} residents · {summary.vacantBeds} vacant beds
+        </p>
+        <p className="mt-2 flex flex-wrap gap-3 text-xs text-nest-muted">
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-600" /> Resident</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-blue-600" /> Temporary</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-red-300" /> Vacating</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-pink-300" /> Next month, bed taken</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-yellow-400" /> Next month, bed empty</span>
+        </p>
+      </header>
+
+      <FloorRoomGrid rooms={floor.rooms} />
+    </div>
+  );
+}

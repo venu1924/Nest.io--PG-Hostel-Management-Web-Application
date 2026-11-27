@@ -1,0 +1,68 @@
+import { getRoomStatus, roomStatusClasses, roomStayGradient } from '../../utils/roomUtils';
+import { formatFloorSeriesLabel } from '../../data/buildingConfig';
+
+/**
+ * Single floor strip inside the building visualization.
+ */
+function roomRange(rooms) {
+  const nums = (rooms || []).map((room) => Number(room.roomNumber)).sort((a, b) => a - b);
+  if (!nums.length) return '—';
+  return nums[0] === nums[nums.length - 1] ? String(nums[0]) : `${nums[0]}–${nums[nums.length - 1]}`;
+}
+
+export default function FloorBlock({
+  floorNumber,
+  rooms,
+  residents,
+  vacantBeds,
+  totalRooms,
+  selected,
+  fading,
+  onSelect,
+  people = [],
+}) {
+  const statusDots = rooms.map((room) => getRoomStatus(room));
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(floorNumber)}
+      className={`group relative w-full overflow-hidden border-x border-nest-navy/20 bg-gradient-to-b from-white to-slate-50 px-4 py-4 text-left transition-all duration-floor sm:px-5 sm:py-5 ${
+        selected
+          ? 'z-10 scale-[1.03] border-nest-navy/40 shadow-soft'
+          : fading
+            ? 'scale-95 opacity-0'
+            : 'hover:bg-white'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="font-display text-lg font-semibold text-nest-navy sm:text-xl">
+            {formatFloorSeriesLabel(floorNumber)}
+          </p>
+          <p className="mt-0.5 text-xs text-nest-muted sm:text-sm">
+            Floor {floorNumber} · Rooms {roomRange(rooms)} · {totalRooms} rooms
+          </p>
+        </div>
+        <div className="text-right text-xs sm:text-sm">
+          <p className="font-medium tabular-nums text-nest-navy">{residents} residents</p>
+          <p className="mt-0.5 text-nest-muted tabular-nums">{vacantBeds} vacant beds</p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1" aria-hidden>
+        {statusDots.map((status, idx) => {
+          const gradient = roomStayGradient(rooms[idx], people);
+          return (
+            <span
+              key={`${floorNumber}-${idx}`}
+              className={`h-2.5 rounded-sm ${gradient ? 'w-4' : `w-2.5 ${roomStatusClasses(status).dot}`}`}
+              style={gradient ? { background: gradient } : undefined}
+              title={status}
+            />
+          );
+        })}
+      </div>
+    </button>
+  );
+}
